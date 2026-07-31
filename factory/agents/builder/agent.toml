@@ -1,0 +1,6 @@
+# Pool agent. Capped at one session because every builder shares the single rig
+# checkout — two builders writing branches in one working tree collide. Raise
+# this once you give the builder its own worktree.
+wake_mode = "fresh"
+idle_timeout = "1h"
+max_active_sessions = 1

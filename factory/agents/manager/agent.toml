@@ -1,0 +1,4 @@
+# The manager is always on. You talk to it; it routes work to the other four.
+wake_mode = "fresh"
+idle_timeout = "8h"
+attach = true

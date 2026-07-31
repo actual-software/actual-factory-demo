@@ -1,0 +1,224 @@
+description = """
+Walk one ASCII-art task through all five agents.
+
+This formula is the whole workflow. The agents it names are generic — none of
+their prompts knows what ASCII art is, or what runs before and after them. The
+order lives here, so changing the order means editing this file rather than
+editing five prompts.
+
+The sequence:
+
+  planner    reads the task and ADR 0001, writes down what "done" looks like
+  builder    writes the file, commits it, opens a pull request
+  architect  gate 1 — does the diff obey the ADRs in adrs/
+  reviewer   gate 2 — does the file satisfy the task's acceptance
+  manager    reports the pull request back and closes the task
+
+Each gate runs once and returns a verdict. A failing gate hands the task back
+to the builder rather than fixing the code itself.
+
+Start a run with:
+
+  gc sling {{rig}}/factory.planner <task-bead-id> --on ascii-art
+"""
+formula = "ascii-art"
+version = 1
+
+[vars]
+[vars.issue]
+description = "The ASCII-art task bead to carry through the five agents"
+required = true
+
+[vars.rig]
+description = "Rig name the five agents are bound to, used in the handoff commands"
+default = "ascii-art"
+
+[[steps]]
+id = "plan"
+title = "Planner: pin down what this task has to produce"
+description = """
+You are the **planner**. You own the first step of `ascii-art`.
+
+**1. Read the task and the standard it has to meet:**
+```bash
+bd show {{issue}}
+cat adrs/0001.ADR.ASCII.md
+```
+
+`metadata.target_file` on the bead names the file to write, for example
+`ascii/a.md`. Take the path from metadata rather than parsing the bead title.
+
+**2. Write down what done looks like.** ADR 0001 already fixes the structure —
+one H1, one fenced `text` block, one two-line rhyme, 40 lines and 40 columns
+maximum, printable ASCII only. Restate it as the concrete acceptance for *this*
+character so the builder and the reviewer are reading the same target:
+
+```bash
+bd update {{issue}} --append-notes "$(cat <<'EOF'
+## Acceptance
+- File: <target_file from metadata>
+- H1: <the character, uppercased for letters>
+- One fenced `text` block, at most 40 lines and 40 columns
+- Exactly two rhyming lines below the block, no heading
+EOF
+)"
+```
+
+**3. Hand off to the builder:**
+```bash
+gc sling {{rig}}/factory.builder {{issue}}
+gc runtime drain-ack
+```
+
+If the task is missing `target_file`, or names a character ADR 0001 does not
+allow, stop and say so in the bead notes instead of guessing. That is the one
+judgment call this step exists to make.
+"""
+
+[[steps]]
+id = "build"
+title = "Builder: write the file and open a pull request"
+needs = ["plan"]
+description = """
+You are the **builder**. The planner has written the acceptance into the bead.
+
+**1. Read the task and the acceptance the planner left:**
+```bash
+bd show {{issue}}
+```
+
+**2. Write the file on a branch of its own:**
+```bash
+git switch -c ascii-<character>
+```
+
+Create the file at the `target_file` path, matching the acceptance exactly.
+Nothing else goes in the commit.
+
+**3. Commit and open the pull request:**
+```bash
+git add <target_file>
+git commit -m "Add ASCII art for <character>"
+git push -u origin ascii-<character>
+gh pr create --fill
+```
+
+**4. Record the pull request and hand off to the first gate:**
+```bash
+PR_URL=$(gh pr view --json url --jq .url)
+bd update {{issue}} --set-metadata pr_url="$PR_URL"
+gc sling {{rig}}/factory.architect {{issue}}
+gc runtime drain-ack
+```
+
+If a gate sends the task back, you will be routed here again. Read the verdict
+the gate wrote to bead metadata, push a fix to the same branch, and route to
+that same gate again.
+"""
+
+[[steps]]
+id = "adr-check"
+title = "Architect: gate 1, check the diff against the ADRs"
+needs = ["build"]
+description = """
+You are the **architect**, and you are a gate. Read the diff, judge it, record a
+verdict, route onward. Do not rewrite the builder's work.
+
+**1. Read the pull request and the decisions it has to respect:**
+```bash
+bd show {{issue}}
+gh pr diff "$(bd show {{issue}} --json | jq -r '.[0].metadata.pr_url')"
+ls adrs/
+```
+
+**2. Judge the diff against every ADR in `adrs/` that governs the changed
+paths.** ADR 0001 governs everything under `ascii/`. An ADR the diff does not
+touch is not your business.
+
+**3. Record the verdict and route:**
+
+Clean — the diff violates nothing:
+```bash
+bd update {{issue}} --set-metadata adr_verdict=clean
+gc sling {{rig}}/factory.reviewer {{issue}}
+gc runtime drain-ack
+```
+
+Violations — name the ADR and the rule, and send it back:
+```bash
+bd update {{issue}} --set-metadata adr_verdict=violations \\
+  --append-notes "ADR gate: <which ADR, which rule, which line>"
+gc sling {{rig}}/factory.builder {{issue}}
+gc runtime drain-ack
+```
+
+One round. If the same violation survives a second pass, say so in the notes
+and route to the manager instead of looping.
+"""
+
+[[steps]]
+id = "review"
+title = "Reviewer: gate 2, check the file against the acceptance"
+needs = ["adr-check"]
+description = """
+You are the **reviewer**, and you are the second gate. The architect has already
+confirmed the diff respects the ADRs. Your question is different: does this file
+actually do what the task asked for?
+
+**1. Read the acceptance and the diff:**
+```bash
+bd show {{issue}}
+gh pr diff "$(bd show {{issue}} --json | jq -r '.[0].metadata.pr_url')"
+```
+
+**2. Check the file against the acceptance the planner wrote.** Count the lines
+and columns rather than eyeballing them. Read the rhyme aloud — two lines that
+do not rhyme are the single most common failure here, and they pass every
+structural check.
+
+**3. Record the verdict and route:**
+
+Pass:
+```bash
+bd update {{issue}} --set-metadata review_verdict=pass
+gc sling {{rig}}/factory.manager {{issue}}
+gc runtime drain-ack
+```
+
+Needs changes — be specific enough that the builder can act without asking:
+```bash
+bd update {{issue}} --set-metadata review_verdict=needs_changes \\
+  --append-notes "Review: <what is wrong and what would fix it>"
+gc sling {{rig}}/factory.builder {{issue}}
+gc runtime drain-ack
+```
+
+One round, same as the architect.
+"""
+
+[[steps]]
+id = "publish"
+title = "Manager: report the pull request and close the task"
+needs = ["review"]
+description = """
+You are the **manager**. Both gates have passed. Close the loop.
+
+**1. Read the outcome:**
+```bash
+bd show {{issue}}
+```
+
+**2. Close the task, recording where the work landed:**
+```bash
+PR_URL=$(bd show {{issue}} --json | jq -r '.[0].metadata.pr_url')
+bd update {{issue}} --set-metadata gc.outcome=pass
+bd close {{issue}}
+```
+
+**3. Tell the operator, in one line, what happened and where to look:**
+
+`ASCII art for <character> is ready to merge: <pr_url>. Both gates passed.`
+
+You do not merge the pull request. A human does, which is the point of putting
+a pull request at the end of the loop rather than a push to `main`.
+"""

@@ -1,0 +1,26 @@
+# factory — the five-agent pack this workshop installs.
+#
+# Everything the pack contains is in three places:
+#
+#   agents/<name>/agent.toml            how each agent runs
+#   agents/<name>/prompt.template.md    what each agent knows
+#   formulas/ascii-art.formula.toml     the order the five of them work in
+#
+# The agents are deliberately generic. None of them knows what ASCII art is.
+# The formula is what turns them into an ASCII-art pipeline, which is also why
+# you can point the same five agents at a different project by writing a
+# different formula.
+#
+# Agents are declared by directory (schema 2). There are no [[agent]] tables
+# here on purpose: an inline table silently takes precedence over the matching
+# agents/<name>/agent.toml, and gc doctor flags it as a legacy declaration.
+
+[pack]
+name = "factory"
+schema = 2
+
+# The manager is the only always-on agent. The other four are pools that spawn
+# when work reaches them and exit when their step is done.
+[[named_session]]
+template = "manager"
+mode = "always"

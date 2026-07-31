@@ -1,0 +1,4 @@
+# Pool agent. One gate round per task, so a single session is enough.
+wake_mode = "fresh"
+idle_timeout = "1h"
+max_active_sessions = 1

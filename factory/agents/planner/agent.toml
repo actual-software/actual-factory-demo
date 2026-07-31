@@ -1,0 +1,4 @@
+# Pool agent. Spawns when a task is routed here, exits when its step is done.
+wake_mode = "fresh"
+idle_timeout = "1h"
+max_active_sessions = 2
