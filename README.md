@@ -69,7 +69,7 @@ gh repo fork actual-software/actual-factory-demo --clone
 ### 3. Create the factory
 
 ```bash
-gc init factory1
+gc init factory
 ```
 
 `gc init` is interactive and asks two questions:
@@ -77,12 +77,12 @@ gc init factory1
 - Config template: **minimal** (option `2`)
 - Provider: **Claude Code** (option `1`)
 
-That writes `factory1/`, holding a `city.toml` and a `pack.toml`.
+That writes `factory/`, holding a `city.toml` and a `pack.toml`.
 
 Now start it:
 
 ```bash
-cd factory1 && gc start
+cd factory && gc start
 ```
 
 `gc start` registers the city with the supervisor, installs the background service if this is your first city, and brings up the city's Dolt server along with its agents.
@@ -90,7 +90,7 @@ cd factory1 && gc start
 **Check:**
 
 ```bash
-gc cities       # factory1, with its absolute path
+gc cities       # factory, with its absolute path
 gc status       # Controller: supervisor-managed (PID ...)
 gc doctor       # ✓ pass, ⚠ warning, ✗ error
 ```
@@ -101,13 +101,13 @@ The city and the rig live side by side. At this point your directory should look
 
 ```text
 ~/factory-demo/
-├── factory1/              # the Gas City factory
+├── factory/              # the Gas City factory
 └── actual-factory-demo/   # your repo fork, which is also the rig
 ```
 
 ### 4. Install the pack
 
-A **pack** is how Gas City ships agents, formulas, and config as one installable unit. The one for this demo lives in `factory1/`.
+A **pack** is how Gas City ships agents, formulas, and config as one installable unit. The one for this demo lives in `factory/`.
 
 Register your fork as the rig, then import the pack into it:
 
