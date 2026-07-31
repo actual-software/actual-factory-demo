@@ -18,14 +18,25 @@
 # Run this from the rig root, after `gc rig add` has initialized its beads
 # database and before you hand any work to an agent:
 #   ./seed.sh
+#
+# Every bead here is created with `gc bd`, not bare `bd`. This matters: bare
+# `bd create` honours the `routing.contributor` setting, so on a machine that
+# has one configured it writes the beads into that personal store instead of
+# the rig's. `gc sling` and the supervisor only ever read the rig's store, so
+# the beads would seed "successfully" and then be invisible to the factory --
+# `gc sling` fails with `bead "<id>" not found in store rig:<rig>`. The trap is
+# that bare `bd list`/`bd show` read *both* stores, so the queue still looks
+# correctly seeded. `gc bd` writes where the agents actually read.
 # ----------------------------------------------------------------------------
 
 set -euo pipefail
 
 # --- preflight ---------------------------------------------------------------
 
-# Require bd and jq (jq plucks the epic id from --json output).
-for tool in bd jq; do
+# Require gc, bd and jq (jq plucks the epic id from --json output). `gc bd` is
+# a passthrough that runs `bd` in the resolved rig directory, so both binaries
+# need to be present.
+for tool in gc bd jq; do
   if ! command -v "${tool}" >/dev/null 2>&1; then
     echo "error: '${tool}' not found on PATH. Install it and re-run." >&2
     exit 1
@@ -38,10 +49,11 @@ done
 # `bd search` always echoes the search term in its "No issues found
 # matching '<term>'" message, so plain `grep -q` would false-positive
 # on every empty db. Use --json + jq length instead.
-if [ "$(bd search "Letters a–m" --json 2>/dev/null | jq 'length')" -gt 0 ]; then
+if [ "$(gc bd search "Letters a–m" --json 2>/dev/null | jq 'length')" -gt 0 ]; then
   echo "Looks like 'Letters a–m' already exists in this beads db." >&2
   echo "Seed appears to have run. Aborting to avoid duplicates." >&2
-  echo "To reseed, clear the db first (rm -rf .beads && bd init)." >&2
+  echo "To reseed, delete the existing beads first, e.g.:" >&2
+  echo "  gc bd list --json | jq -r '.[].id' | xargs -n1 gc bd delete --force" >&2
   exit 1
 fi
 
@@ -52,7 +64,7 @@ fi
 create_epic() {
   local title="$1"
   local slug="$2"
-  bd create \
+  gc bd create \
     --type=epic \
     --priority=2 \
     --metadata "{\"epic\":\"${slug}\"}" \
@@ -66,7 +78,7 @@ create_epic() {
 create_child() {
   local parent="$1"
   local fname="$2"
-  bd create \
+  gc bd create \
     --type=task \
     --parent="${parent}" \
     --priority=2 \
@@ -141,6 +153,6 @@ echo "  tasks opened: ${TOTAL_TASKS}"
 echo "  total beads:  $((TOTAL_EPICS + TOTAL_TASKS))"
 echo
 echo "Next steps:"
-echo "  bd list --type=epic   # see the epics you just opened"
-echo "  bd ready              # find a task to start on"
+echo "  gc bd list --type=epic   # see the epics you just opened"
+echo "  gc bd ready              # find a task to start on"
 echo "  gc sling ascii-art/factory.planner <bead-id> --on ascii-art   # run one"

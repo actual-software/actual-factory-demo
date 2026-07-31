@@ -107,13 +107,14 @@ The city and the rig live side by side. At this point your directory should look
 
 ### 4. Install the pack
 
-A **pack** is how Gas City ships agents, formulas, and config as one installable unit. The one for this demo lives in `factory/`.
+A **pack** is how Gas City ships agents, formulas, and config as one installable unit. The one for this demo lives in this repo's `factory/` directory — not to be confused with the `factory/` city you just created alongside it.
 
 Register your fork as the rig, then import the pack into it:
 
 ```bash
-export RIG_PATH=/$HOME/factory-demo/actual-factory-demo/
+export RIG_PATH="$HOME/factory-demo/actual-factory-demo"
 gc rig add "$RIG_PATH" --name ascii-art
+gc import add --rig ascii-art "$RIG_PATH/factory"
 gc restart
 ```
 
