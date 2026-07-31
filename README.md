@@ -40,9 +40,9 @@ The work itself is simply to produce ASCII art for a letter, with a rhyming coup
 | Tool | Version | Why |
 | --- | --- | --- |
 | [Claude Code](https://claude.com/claude-code) | latest | The coding agent the factory drives |
-| [`gc`](https://github.com/gastownhall/gascity) | 1.4.0 | Gas City itself |
-| [`bd`](https://github.com/gastownhall/beads) | 1.1.2 | The task queue the agents pull work from |
-| [`dolt`](https://github.com/dolthub/dolt) | 2.2.3 | Storage behind `bd` |
+| [`gc`](https://github.com/gastownhall/gascity) | 1.3.0 or newer | Gas City itself |
+| [`bd`](https://github.com/gastownhall/beads) | 1.0.0 or newer | The task queue the agents pull work from |
+| [`dolt`](https://github.com/dolthub/dolt) | 2.1.0 or newer | Storage behind `bd` |
 | [`gh`](https://cli.github.com/) | no minimum | Agents open pull requests through it |
 | [`tmux`](https://github.com/tmux/tmux) | no minimum | Session backend every agent runs in |
 | [`git`](https://git-scm.com/) | no minimum | Rig checkouts and agent commits |
@@ -50,80 +50,38 @@ The work itself is simply to produce ASCII art for a letter, with a rhyming coup
 | [`flock`](https://github.com/discoteq/flock) | no minimum | Lock coordination for `bd` |
 | `pgrep`, `lsof` | no minimum | Process and port checks |
 
-`gc`, `bd`, and `dolt` are pinned to exact versions below, because Gas City enforces a
-[minimum version](https://github.com/gastownhall/gascity#prerequisites) for each. The rest have no
-minimum, so the commands install whatever your platform currently ships.
+The versions above are minimums. Every command below installs the current release, which clears them.
 
 **Claude Code is the only paid prerequisite. All other components are fully open-source.**
 
 #### If you are on macOS
 
 ```bash
-brew install tmux git jq flock gh
-brew install gastownhall/gascity/gascity   # gc — the tap pins 1.4.0
+brew install tmux git jq flock gh beads
+brew install gastownhall/gascity/gascity
 ```
 
-`pgrep` and `lsof` are already part of macOS.
-
-`bd` isn't in Homebrew, and Homebrew has no versioned formula for `dolt`, so both come from their
-release tarballs:
-
-```bash
-ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
-
-# dolt 2.2.3
-tmp=$(mktemp -d)
-curl -fsSL "https://github.com/dolthub/dolt/releases/download/v2.2.3/dolt-darwin-${ARCH}.tar.gz" | tar -xz -C "$tmp"
-sudo install "$tmp/dolt-darwin-${ARCH}/bin/dolt" /usr/local/bin/dolt && rm -rf "$tmp"
-
-# bd 1.1.2
-tmp=$(mktemp -d)
-curl -fsSL "https://github.com/gastownhall/beads/releases/download/v1.1.2/beads_1.1.2_darwin_${ARCH}.tar.gz" | tar -xz -C "$tmp"
-sudo install "$tmp/bd" /usr/local/bin/bd && rm -rf "$tmp"
-```
+`beads` pulls in `dolt`, and `pgrep` and `lsof` ship with macOS, so neither needs its own step.
 
 #### If you are on Linux (Debian/Ubuntu)
 
 ```bash
-sudo apt update
-sudo apt install -y tmux git jq curl util-linux procps lsof
+sudo apt update && sudo apt install -y tmux git jq curl util-linux procps lsof gh
+curl -sSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash
+brew install gastownhall/gascity/gascity
 ```
 
-`flock` comes from `util-linux` and `pgrep` from `procps`. Install `gh` from
-[cli.github.com](https://cli.github.com/), then the three pinned tools:
-
-```bash
-ARCH=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
-
-# gc 1.4.0
-tmp=$(mktemp -d)
-curl -fsSL "https://github.com/gastownhall/gascity/releases/download/v1.4.0/gascity_1.4.0_linux_${ARCH}.tar.gz" | tar -xz -C "$tmp"
-sudo install "$tmp/gc" /usr/local/bin/gc && rm -rf "$tmp"
-
-# dolt 2.2.3
-tmp=$(mktemp -d)
-curl -fsSL "https://github.com/dolthub/dolt/releases/download/v2.2.3/dolt-linux-${ARCH}.tar.gz" | tar -xz -C "$tmp"
-sudo install "$tmp/dolt-linux-${ARCH}/bin/dolt" /usr/local/bin/dolt && rm -rf "$tmp"
-
-# bd 1.1.2
-tmp=$(mktemp -d)
-curl -fsSL "https://github.com/gastownhall/beads/releases/download/v1.1.2/beads_1.1.2_linux_${ARCH}.tar.gz" | tar -xz -C "$tmp"
-sudo install "$tmp/bd" /usr/local/bin/bd && rm -rf "$tmp"
-```
+`flock` comes from `util-linux` and `pgrep` from `procps`. Homebrew runs on Linux, which is the
+shortest route to `gc`; without it, take the `linux` tarball from
+[the releases page](https://github.com/gastownhall/gascity/releases/latest) instead.
 
 #### Check
 
-Version mismatches surface as confusing errors several steps later, so confirm all of it now:
-
 ```bash
-gc version      # 1.4.0
-bd version      # 1.1.2
-dolt version    # 2.2.3
-gh auth status  # must report a logged-in account
-tmux -V && git --version && jq --version && flock --version
+gc version && bd version && dolt version
+gh auth status   # must report a logged-in account; run gh auth login if not
 ```
-
-If `gh` isn't logged in yet, run `gh auth login`.
 
 ### 2. Fork this repo
 
