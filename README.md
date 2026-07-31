@@ -6,7 +6,7 @@ Build a working software factory on Claude Code in ~15 minutes with Gas City, th
 
 - [Software Factory Overview](#software-factory-overview)
 - [Walkthrough](#walkthrough)
-  - [1. Prerequisites](#1-prerequisites)
+  - [1. Install the prerequisites](#1-install-the-prerequisites)
   - [2. Fork this repo](#2-fork-this-repo)
   - [3. Create the factory](#3-create-the-factory)
   - [4. Install the pack](#4-install-the-pack)
@@ -35,24 +35,7 @@ The work itself is simply to produce ASCII art for a letter, with a rhyming coup
 
 ## Walkthrough
 
-### 1. Prerequisites
-
-| Tool | Version | Why |
-| --- | --- | --- |
-| [Claude Code](https://claude.com/claude-code) | latest | The coding agent the factory drives |
-| [`gc`](https://github.com/gastownhall/gascity) | 1.3.0 or newer | Gas City itself |
-| [`bd`](https://github.com/gastownhall/beads) | 1.0.0 or newer | The task queue the agents pull work from |
-| [`dolt`](https://github.com/dolthub/dolt) | 2.1.0 or newer | Storage behind `bd` |
-| [`gh`](https://cli.github.com/) | no minimum | Agents open pull requests through it |
-| [`tmux`](https://github.com/tmux/tmux) | no minimum | Session backend every agent runs in |
-| [`git`](https://git-scm.com/) | no minimum | Rig checkouts and agent commits |
-| [`jq`](https://jqlang.github.io/jq/) | no minimum | JSON parsing in the pack's scripts |
-| [`flock`](https://github.com/discoteq/flock) | no minimum | Lock coordination for `bd` |
-| `pgrep`, `lsof` | no minimum | Process and port checks |
-
-The versions above are minimums. The command below installs current releases, which clear them.
-
-**Claude Code is the only paid prerequisite. All other components are fully open-source.**
+### 1. Install the prerequisites
 
 #### Install
 
