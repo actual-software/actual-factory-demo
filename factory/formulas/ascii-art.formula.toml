@@ -37,8 +37,6 @@ default = "ascii-art"
 id = "plan"
 title = "Planner: pin down what this task has to produce"
 description = """
-You are the **planner**. You own the first step of `ascii-art`.
-
 **1. Read the task and the standard it has to meet:**
 ```bash
 bd show {{issue}}
@@ -51,7 +49,7 @@ cat adrs/0001.ADR.ASCII.md
 **2. Write down what done looks like.** ADR 0001 already fixes the structure —
 one H1, one fenced `text` block, one two-line rhyme, 40 lines and 40 columns
 maximum, printable ASCII only. Restate it as the concrete acceptance for *this*
-character so the builder and the reviewer are reading the same target:
+character, so everything downstream is reading the same target:
 
 ```bash
 bd update {{issue}} --append-notes "$(cat <<'EOF'
@@ -64,7 +62,7 @@ EOF
 )"
 ```
 
-**3. Hand off to the builder:**
+**3. Route it onward:**
 ```bash
 gc sling {{rig}}/factory.builder {{issue}}
 gc runtime drain-ack
@@ -80,9 +78,7 @@ id = "build"
 title = "Builder: write the file and open a pull request"
 needs = ["plan"]
 description = """
-You are the **builder**. The planner has written the acceptance into the bead.
-
-**1. Read the task and the acceptance the planner left:**
+**1. Read the task and the acceptance in its notes:**
 ```bash
 bd show {{issue}}
 ```
@@ -103,7 +99,7 @@ git push -u origin ascii-<character>
 gh pr create --fill
 ```
 
-**4. Record the pull request and hand off to the first gate:**
+**4. Record the pull request and route it onward:**
 ```bash
 PR_URL=$(gh pr view --json url --jq .url)
 bd update {{issue}} --set-metadata pr_url="$PR_URL"
@@ -111,9 +107,9 @@ gc sling {{rig}}/factory.architect {{issue}}
 gc runtime drain-ack
 ```
 
-If a gate sends the task back, you will be routed here again. Read the verdict
-the gate wrote to bead metadata, push a fix to the same branch, and route to
-that same gate again.
+If the task comes back carrying a verdict, read the verdict from the bead's
+metadata and notes, push a fix to the same branch, and route it back the way it
+came. Do not open a second pull request.
 """
 
 [[steps]]
@@ -121,9 +117,6 @@ id = "adr-check"
 title = "Architect: gate 1, check the diff against the ADRs"
 needs = ["build"]
 description = """
-You are the **architect**, and you are a gate. Read the diff, judge it, record a
-verdict, route onward. Do not rewrite the builder's work.
-
 **1. Read the pull request and the decisions it has to respect:**
 ```bash
 bd show {{issue}}
@@ -133,7 +126,7 @@ ls adrs/
 
 **2. Judge the diff against every ADR in `adrs/` that governs the changed
 paths.** ADR 0001 governs everything under `ascii/`. An ADR the diff does not
-touch is not your business.
+touch is not in play.
 
 **3. Record the verdict and route:**
 
@@ -152,8 +145,9 @@ gc sling {{rig}}/factory.builder {{issue}}
 gc runtime drain-ack
 ```
 
-One round. If the same violation survives a second pass, say so in the notes
-and route to the manager instead of looping.
+One round. If the same violation survives a second pass, another round will not
+settle it: write both readings into the notes and route it forward rather than
+back.
 """
 
 [[steps]]
@@ -161,20 +155,16 @@ id = "review"
 title = "Reviewer: gate 2, check the file against the acceptance"
 needs = ["adr-check"]
 description = """
-You are the **reviewer**, and you are the second gate. The architect has already
-confirmed the diff respects the ADRs. Your question is different: does this file
-actually do what the task asked for?
-
 **1. Read the acceptance and the diff:**
 ```bash
 bd show {{issue}}
 gh pr diff "$(bd show {{issue}} --json | jq -r '.[0].metadata.pr_url')"
 ```
 
-**2. Check the file against the acceptance the planner wrote.** Count the lines
-and columns rather than eyeballing them. Read the rhyme aloud — two lines that
-do not rhyme are the single most common failure here, and they pass every
-structural check.
+**2. Check the file against the acceptance in the bead's notes.** The question
+is whether the result does what the task asked for. Count the lines and columns
+rather than eyeballing them. Read the rhyme aloud — two lines that do not rhyme
+are the single most common failure here, and they pass every structural check.
 
 **3. Record the verdict and route:**
 
@@ -185,7 +175,7 @@ gc sling {{rig}}/factory.manager {{issue}}
 gc runtime drain-ack
 ```
 
-Needs changes — be specific enough that the builder can act without asking:
+Needs changes — be specific enough to act on without a follow-up question:
 ```bash
 bd update {{issue}} --set-metadata review_verdict=needs_changes \\
   --append-notes "Review: <what is wrong and what would fix it>"
@@ -193,7 +183,7 @@ gc sling {{rig}}/factory.builder {{issue}}
 gc runtime drain-ack
 ```
 
-One round, same as the architect.
+One round.
 """
 
 [[steps]]
@@ -201,8 +191,6 @@ id = "publish"
 title = "Manager: report the pull request and close the task"
 needs = ["review"]
 description = """
-You are the **manager**. Both gates have passed. Close the loop.
-
 **1. Read the outcome:**
 ```bash
 bd show {{issue}}
@@ -215,10 +203,10 @@ bd update {{issue}} --set-metadata gc.outcome=pass
 bd close {{issue}}
 ```
 
-**3. Tell the operator, in one line, what happened and where to look:**
+**3. Say what happened, in one line, and where to look:**
 
 `ASCII art for <character> is ready to merge: <pr_url>. Both gates passed.`
 
-You do not merge the pull request. A human does, which is the point of putting
-a pull request at the end of the loop rather than a push to `main`.
+Nobody in this factory merges the pull request. A human does, which is the point
+of putting a pull request at the end of the loop rather than a push to `main`.
 """

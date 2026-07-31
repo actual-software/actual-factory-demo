@@ -116,8 +116,10 @@ cd factory1
 export FACTORY_PATH="$(pwd)"
 
 rm -rf agents/mayor
-sed -i.bak '/^\[\[named_session\]\]$/,/^  mode = "always"$/d' pack.toml && rm -f pack.toml.bak
+sed -i.bak '/^\[\[named_session\]\]$/,/^mode = "always"$/d' pack.toml && rm -f pack.toml.bak
 ```
+
+That second command deletes the three-line `[[named_session]]` block at the bottom of `pack.toml`. Open the file afterwards if you want to see what came out.
 
 Now start it:
 
@@ -284,7 +286,7 @@ cat "$RIG_PATH/factory/agents/builder/agent.toml"
 cat "$RIG_PATH/factory/agents/reviewer/agent.toml"
 ```
 
-Four lines each, and between them they decide the agent's whole operational shape. `wake_mode = "fresh"` is the one to notice. Every session starts with no memory of the last one, so anything an agent needs has to reach it through the task or the repo, which is why the planner's acceptance ends up carrying so much weight.
+Three settings each, and between them they decide the agent's whole operational shape. `wake_mode = "fresh"` is the one to notice. Every session starts with no memory of the last one, so anything an agent needs has to reach it through the task or the repo, which is why the planner's acceptance ends up carrying so much weight.
 
 **`ascii-art.formula.toml`, which says what order they work in.** If you only read one file today, make it this one.
 
@@ -292,7 +294,7 @@ Four lines each, and between them they decide the agent's whole operational shap
 gc formula show ascii-art --rig ascii-art
 ```
 
-Five steps, chained by `needs`, one per agent. Each says what that agent produces and who gets it next. Read `adr-check` in particular. See the branch where the gate finds a violation? It routes straight back to the builder, and that one line is basically the entire review loop.
+Five steps, chained by `needs`, one per agent. Each one is just instructions and a routing command at the end, with nothing in it about who the agent is or who ran before. Read `adr-check` in particular. See the branch where the gate finds a violation? It routes straight back to the builder, and that one line is basically the entire review loop.
 
 **`prompt.template.md`, which says what an agent knows.**
 
@@ -300,7 +302,7 @@ Five steps, chained by `needs`, one per agent. Each says what that agent produce
 cat "$RIG_PATH/factory/agents/reviewer/prompt.template.md"
 ```
 
-Forty-odd lines. Not one of them mentions ASCII art, and not one names the agent that runs next, because a prompt here only describes a role: what this agent judges, what habits it brings to the job, and when it's allowed to stop.
+Thirty-odd lines, and they answer three questions and no others: what this agent is for, what it has to work with, and what any task it's handed asks of it. Nothing about ASCII art, nothing about which agent runs next, nothing about this pipeline at all. Point it at a different codebase and the file still reads true.
 
 That split is the demo's most transferable idea, and it's the bit worth stealing. Sequence lives in the formula. Role lives in the prompt. Reorder the pipeline and you're editing one file instead of five, and pointing these same five agents at your own codebase just means writing a new formula and leaving every prompt where it is.
 
@@ -327,7 +329,7 @@ Use it to skip ahead, to check your own output against a known-good result, or j
 
 **`gc formula list --rig ascii-art` doesn't show `ascii-art`.** The pack went in at the wrong scope. Check `gc import list --rig ascii-art`, and if it comes back empty the import landed at city scope instead. Run `gc import remove factory`, then re-add it with the `--rig ascii-art` flag.
 
-**`gc status` shows a `mayor` alongside the pack's agents.** The stock mayor is still declared. Re-run the two removal commands from step 3, then `gc restart`.
+**`gc status` shows a `mayor` alongside the pack's agents.** The stock mayor is still declared. Open `pack.toml`, delete the `[[named_session]]` block naming `mayor` by hand, check that `agents/mayor` is gone too, then `gc restart`. Reaching for step 3's `sed` a second time won't help you here: if it didn't match the first time it won't match now either.
 
 **`./seed.sh` reports "No issues found" afterwards.** You ran it somewhere other than the rig directory, so the beads landed in a different database entirely. Check `pwd`, `cd "$RIG_PATH"`, re-run.
 
