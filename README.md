@@ -50,37 +50,28 @@ The work itself is simply to produce ASCII art for a letter, with a rhyming coup
 | [`flock`](https://github.com/discoteq/flock) | no minimum | Lock coordination for `bd` |
 | `pgrep`, `lsof` | no minimum | Process and port checks |
 
-The versions above are minimums. Every command below installs the current release, which clears them.
+The versions above are minimums. The command below installs current releases, which clear them.
 
 **Claude Code is the only paid prerequisite. All other components are fully open-source.**
 
-#### If you are on macOS
+#### Install
+
+Homebrew runs on both macOS and Linux, and `gascity` declares `bd`, `dolt`, `jq`, `tmux`, and
+`flock` as dependencies, so one line covers the whole stack:
 
 ```bash
-brew install tmux git jq flock gh beads
-brew install gastownhall/gascity/gascity
+brew install gascity gh git
+gh auth login
 ```
 
-`beads` pulls in `dolt`, and `pgrep` and `lsof` ship with macOS, so neither needs its own step.
-
-#### If you are on Linux (Debian/Ubuntu)
-
-```bash
-sudo apt update && sudo apt install -y tmux git jq curl util-linux procps lsof gh
-curl -sSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
-curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash
-brew install gastownhall/gascity/gascity
-```
-
-`flock` comes from `util-linux` and `pgrep` from `procps`. Homebrew runs on Linux, which is the
-shortest route to `gc`; without it, take the `linux` tarball from
-[the releases page](https://github.com/gastownhall/gascity/releases/latest) instead.
+`pgrep` and `lsof` are already present on macOS and on any standard Linux desktop. If you are on
+Linux without Homebrew, [the Gas City
+README](https://github.com/gastownhall/gascity#installation) covers the source build.
 
 #### Check
 
 ```bash
-gc version && bd version && dolt version
-gh auth status   # must report a logged-in account; run gh auth login if not
+gc version && bd version && dolt version && gh auth status
 ```
 
 ### 2. Fork this repo
