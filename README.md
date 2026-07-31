@@ -1,6 +1,6 @@
 # Actual Factory Demo
 
-Build a working software factory on Claude Code in ~15 minutes with Gas City, then watch five agents carry a task from a queue to an open pull request fully autonomously.
+Build a working software factory on Claude Code in 15 minutes with Gas City, then watch five agents carry a task from a queue to an open pull request fully autonomously.
 
 ## Table of contents
 
