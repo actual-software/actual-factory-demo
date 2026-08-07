@@ -64,7 +64,12 @@ gc version && bd version && dolt version && gh auth status
 ```bash
 mkdir -p ~/factory-demo && cd ~/factory-demo
 gh repo fork actual-software/actual-factory-demo --clone
+cd actual-factory-demo && gh repo set-default <your-github-user>/actual-factory-demo && cd ..
 ```
+
+The `set-default` line matters. In a fresh fork, `gh` resolves the base
+repository to the upstream parent, so pull requests the factory opens would land
+on `actual-software/actual-factory-demo` instead of your fork.
 
 ### 3. Create the factory
 

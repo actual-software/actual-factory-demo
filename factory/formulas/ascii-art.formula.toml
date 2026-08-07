@@ -96,12 +96,15 @@ Nothing else goes in the commit.
 git add <target_file>
 git commit -m "Add ASCII art for <character>"
 git push -u origin ascii-<character>
-gh pr create --fill
+gh pr create --fill --repo "$(git remote get-url origin)"
 ```
+
+The `--repo` flag is required. This rig is a fork, and without it `gh` opens the
+pull request against the upstream parent repository instead of your own fork.
 
 **4. Record the pull request and route it onward:**
 ```bash
-PR_URL=$(gh pr view --json url --jq .url)
+PR_URL=$(gh pr view --repo "$(git remote get-url origin)" --json url --jq .url)
 bd update {{issue}} --set-metadata pr_url="$PR_URL"
 gc sling {{rig}}/factory.architect {{issue}}
 gc runtime drain-ack
