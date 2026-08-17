@@ -109,11 +109,26 @@ factory/               # the Gas City factory
 
 A **pack** is how Gas City ships agents, formulas, and config as one installable unit. The one for this demo lives in this repo's `factory/` directory — not to be confused with the `factory/` city you just created alongside it.
 
-Register your fork as the rig, then import the pack into it:
+First, point `RIG_PATH` at your fork's checkout and **verify it before registering anything**. `RIG_PATH` must be wherever step 2 actually put your clone — `$HOME/factory-demo/actual-factory-demo` if you followed it exactly, somewhere else if you cloned from a different directory. This matters because `gc rig add` does not check that the path is a repo: hand it a wrong path and it silently creates an empty directory, registers it, and nothing fails until `./seed.sh` goes missing in step 5.
 
 ```bash
-cd factory
-export RIG_PATH="$HOME/factory-demo/actual-factory-demo"
+export RIG_PATH="$HOME/factory-demo/actual-factory-demo"   # adjust if your clone lives elsewhere
+git -C "$RIG_PATH" rev-parse && test -x "$RIG_PATH/seed.sh" && echo "rig path ok"
+```
+
+Do not continue until that prints `rig path ok`.
+
+While you are here, tell `gh` that pull requests belong on **your fork**. `gh repo fork --clone` marks the upstream `actual-software` repo as the default base, so without this the factory's `gh pr create` opens its pull requests against the upstream repo instead of yours:
+
+```bash
+cd "$RIG_PATH"
+gh repo set-default "$(gh api user -q .login)/actual-factory-demo"
+```
+
+Now register the rig and import the pack. These commands must run from inside the **city** directory (the `factory/` you created with `gc init`, not this repo's `factory/` pack directory — same name, different job):
+
+```bash
+cd "$HOME/factory-demo/factory"   # adjust if you ran `gc init` somewhere else
 gc rig add "$RIG_PATH" --name ascii-art
 gc import add --rig ascii-art "$RIG_PATH/factory"
 gc restart
@@ -129,22 +144,32 @@ The `--rig ascii-art` binds the five agents to the rig, which is what puts them 
 gc import list --rig ascii-art   # factory, with a locked commit
 gc formula list --rig ascii-art  # ascii-art, alongside the built-in mol-* formulas
 gc status                        # five ascii-art/factory.* agents
+gc doctor | grep "rig:ascii-art:git"   # must NOT warn "not a git repository"
 ```
+
+If that last line warns `not a git repository`, the rig was registered against the wrong path. Fix it before moving on: `gc rig remove ascii-art`, correct `RIG_PATH`, and re-run this step.
 
 ### 5. Seed the task queue
 
-The agents read work from **beads**, which is a task queue backed by Dolt. Yours is empty right now. The seed script opens two epics and twenty-six tasks, one per letter:
+The agents read work from **beads**, which is a task queue backed by Dolt. Yours is empty right now. The seed script opens two epics and twenty-six tasks, one per letter.
+
+The script must run from the **rig root** — it calls `gc bd`, which resolves the target beads store from the directory it runs in. If you opened a fresh terminal since step 4, `RIG_PATH` is no longer set, so set it again rather than letting `cd "$RIG_PATH"` silently dump you in `$HOME`:
 
 ```bash
+export RIG_PATH="$HOME/factory-demo/actual-factory-demo"   # adjust if your clone lives elsewhere
 cd "$RIG_PATH"
 ./seed.sh
 ```
+
+If this fails with `no such file or directory: ./seed.sh`, the problem is not this step: your rig path never contained the fork's checkout. Go back to the verification at the top of step 4.
+
+The script seeds through `gc bd` rather than bare `bd` on purpose: `gc bd` writes to the rig's store, which is the one `gc sling` and the agents read. Bare `bd create` can route beads into a personal contributor store where the queue *looks* seeded (`bd list` reads both) but the factory finds nothing.
 
 **Check:**
 
 ```bash
 gc bd list --type=epic   # Letters a–m and Letters n–z
-gc bd ready              # twenty-six tasks with no blockers
+gc bd ready              # twenty-six tasks with no blockers, ids prefixed aa-
 ```
 
 ### 6. Run a task
